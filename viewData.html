@@ -19,6 +19,8 @@
     <nav>
       <a href="index.html">Home</a>
       <a href="viewData.html">View Data</a>
+      <!-- <a href="viewCut.html">View CUT</a> -->
+
     </nav>
 
     <!-- Content -->
@@ -27,11 +29,13 @@
       <thead class=" table-secondary">
         <tr>
           <th>#</th>
-          <th>cycle_id</th>
+          <th>timestamp</th>
           <th>Nama</th>
           <th>Heart Rate</th>
           <th>SpO2</th>
-          <th>IR Value</th>
+          <th class="ir">IR Value</th>
+          <th >View Graph</th>
+          
         </tr>
       </thead>
       <tbody id="data-table">
@@ -50,9 +54,9 @@
         Export
       </button>
       <div class="dropdown-menu">
-        <button class="dropdown-item" onclick="exportToPDF()">
+        <!-- <button class="dropdown-item" onclick="exportToPDF()">
           Export to PDF
-        </button>
+        </button> -->
         <button class="dropdown-item" onclick="exportToCSV()">
           Export to CSV
         </button>

@@ -42,5 +42,69 @@ body {
 
 }
 
+table td.ir {
+    word-wrap: break-word;
+    word-break: break-all;
+    white-space: normal;
+    padding: 20px; /* Menambahkan padding untuk keterbacaan yang lebih baik */
+  }
+
+  body.loading-active {
+    overflow: hidden; /* Prevent scrolling */
+  }
+  .overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(5px);
+    z-index: 1000; /* Ensure overlay is above all other content */
+  }
+  .loading {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 20px;
+    border-radius: 5px;
+    font-size: 18px;
+    z-index: 1001; /* Ensure loading message is above the overlay */
+  }
+
+  .stopwatch-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 20px;
+  }
+  .stopwatch-button {
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+  }
+  .stopwatch-time {
+    font-size: 18px;
+    font-weight: bold;
+    display: none; /* Hide stopwatch initially */
+  }
+
+  #cutChartsContainer {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* Dua kolom dengan lebar sama */
+    gap: 20px; /* Jarak antar elemen */
+  }
+  
+  .cutChart {
+    width: 100%; /* Lebar elemen mengisi satu kolom */
+    height: 300px; /* Tinggi elemen */
+  }
+
 
 

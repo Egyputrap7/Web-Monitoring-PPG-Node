@@ -6,7 +6,8 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-streaming"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/4.2.8/mqtt.min.js"></script>
-
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css"
       rel="stylesheet"
@@ -14,23 +15,16 @@
       crossorigin="anonymous"
     />
     <link rel="stylesheet" type="text/css" href="style.css" />
-    <style>
-      .red-button {
-        background-color: red;
-        border-color: red;
-      }
-    </style>
   </head>
   <body>
     <!-- Navbar -->
     <nav>
       <a href="index.html">Home</a>
       <a href="viewData.html">View Data</a>
+      <!-- <a href="viewCut.html">View CUT</a> -->
     </nav>
-
     <!-- Content -->
     <h1>Pulse Oximeter Data</h1>
-
     <div class="row row-cols-1 row-cols-sm-3 g-4 mb-3 mt-2 me-2">
       <div class="col mb-3">
         <div class="card text-dark bg-light">
@@ -50,7 +44,6 @@
             </div>
             <p id="spO2" style="font-size: 20px;" >SpO2: N/A</p>
           </div>
-
         </div>
       </div>
       <div class="col">
@@ -66,18 +59,27 @@
       </div>
     </div>
 
+    <div id="overlay" class="overlay"></div>
+    <div id="loading" class="loading">
+      Menyimpan ke database...
+    </div>
+
+
     <button id="stopButton" type="button" class="btn btn-primary btn-lg mb-3" onclick="stopSending()" > Stop send </button>
     <form id="namaForm" onsubmit="handleSubmit(event)">
       <button id="saveButton" type="submit" class="btn btn-primary btn-lg" onclick="startSending()" > Save Data </button>
+      <div id="stopwatch" class="stopwatch-time">00:00</div>
+
       <div class="mb-3" style="width: 200px;">
         <label class="form-label">Nama</label>
         <input class="form-control" type="text" id="nama" name="nama" placeholder="Masukkan nama Anda.." required>
       </div>
     </form>
     <canvas id="ppgChart" width="401" height="100"></canvas>
-
     <!-- Load JavaScript at the bottom -->
     <script src="script.js"></script>
     <script src="server.js"></script>
+
+    
   </body>
 </html>

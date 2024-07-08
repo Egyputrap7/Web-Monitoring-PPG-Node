@@ -1,21 +1,24 @@
 let chart;
 
 let intervalId;
-const serverUrl = "http://192.168.1.34/getdata";
+const serverUrl = "http://192.168.1.40/getdata";
+const espServer = "192.168.1.33";
 
+let deleteCycleId = null;
 
 let sendData = false;
-let nama = '';
+let nama = "";
+
+let stopwatchInterval;
+let totalSeconds = 0;
 
 function fetchData() {
-  fetch(serverUrl)
+  fetch("http://192.168.56.29/getdata")
     .then((response) => response.json())
     .then((data) => {
-      document.getElementById("heartRate").innerText =
-       data.heartRate + " bpm";
-      document.getElementById("spO2").innerText =  data.spO2 + " %";
-      document.getElementById("irValue").innerText =
-         data.irValue + " ";
+      document.getElementById("heartRate").innerText = data.heartRate + " bpm";
+      document.getElementById("spO2").innerText = data.spO2 + " %";
+      document.getElementById("irValue").innerText = data.irValue + " ";
 
       // Add new data point to chart
       const time = new Date();
@@ -57,9 +60,9 @@ window.onload = function () {
         x: {
           type: "realtime", // Use the 'realtime' scale provided by chartjs-plugin-streaming
           realtime: {
-            duration: 60000, // Data in the past 60 seconds will be displayed
-            refresh: 1000, // Update interval
-            delay: 1000, // Delay for fetching new data
+            duration: 3000, // Data in the past 60 seconds will be displayed
+            refresh: 20, // Update interval
+            delay: 600, // Delay for fetching new data
             onRefresh: fetchData, // Call fetchData to get new data
           },
         },
@@ -81,86 +84,171 @@ window.onload = function () {
   fetchData();
 };
 
-
 function handleSubmit(event) {
   event.preventDefault();
-  nama = document.getElementById('nama').value;
+  nama = document.getElementById("nama").value;
   sendData = true;
-  console.log('Nama set:', nama);
+  console.log("Nama set:", nama);
 
   // Send the name to the database
-  fetch('http://localhost:3000/saveName', {
-      method: 'POST',
-      headers: {
-          'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ nama }),
+  fetch("http://localhost:3000/saveName", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ nama }),
   })
-  .then(response => {
+    .then((response) => {
       if (!response.ok) {
-          throw new Error('Error saving name');
+        throw new Error("Error saving name");
       }
       return response.json();
-  })
-  .then(data => {
-      console.log('Name saved:', data);
+    })
+    .then((data) => {
+      console.log("Name saved:", data);
       // Call the function to start sending data to ESP32
       startSending();
-  })
-  .catch(error => {
-      console.error('Error:', error);
-  });
+    })
+    .catch((error) => {
+      console.error("Error:", error);
+    });
 }
 
 function startSending() {
-  fetch("http://192.168.1.34/startdata") // Memberitahu ESP32 untuk mulai mengirim data
-      .then((response) => {
-          if (!response.ok) {
-              throw new Error("Error starting data send");
-          }
-          console.log("Data sending started");
-      })
-      .catch((error) => {
-          console.error("Error starting data send:", error);
-      });
+  fetch("http://192.168.56.29/startdata") // Memberitahu ESP32 untuk mulai mengirim data
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error("Error starting data send");
+      }
+      console.log("Data sending started");
+    })
+    .catch((error) => {
+      console.error("Error starting data send:", error);
+    });
+  // Clear any existing interval
+  clearInterval(stopwatchInterval);
+
+  // Reset stopwatch
+  totalSeconds = 0;
+  updateStopwatchDisplay();
+  // Show stopwatch
+  document.getElementById("stopwatch").style.display = "inline-block";
+
+  // Start interval to update stopwatch every second
+  stopwatchInterval = setInterval(function () {
+    totalSeconds++;
+    updateStopwatchDisplay();
+  }, 1000); // Update every second
 }
+
+// function stopSending() {
+//   sendData = false;
+//   console.log("Data sending stopped");
+//   // Optionally, notify ESP32 to stop sending data
+//   fetch("http://192.168.1.33/stopdata")
+//     .then((response) => {
+//       if (!response.ok) {
+//         throw new Error("Error stopping data send");
+//       }
+//       console.log("Data sending stopped on ESP32");
+//     })
+//     .catch((error) => {
+//       console.error("Error stopping data send:", error);
+//     });
+// }
 
 function stopSending() {
   sendData = false;
-  console.log('Data sending stopped');
+  console.log("Data sending stopped");
+
+  // Show overlay and loading message
+  document.getElementById("overlay").style.display = "block";
+  document.getElementById("loading").style.display = "block";
+  document.body.classList.add("loading-active");
+
   // Optionally, notify ESP32 to stop sending data
-  fetch("http://192.168.1.34/stopdata")
-      .then((response) => {
-          if (!response.ok) {
-              throw new Error("Error stopping data send");
-          }
-          console.log("Data sending stopped on ESP32");
-      })
-      .catch((error) => {
-          console.error("Error stopping data send:", error);
-      });
+  fetch("http://192.168.56.29/stopdata")
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error("Error stopping data send");
+      }
+      console.log("Data sending stopped on ESP32");
+
+      // Simulate a delay to represent saving to database
+      setTimeout(function () {
+        // Hide overlay and loading message
+
+        document.getElementById("overlay").style.display = "none";
+        document.getElementById("loading").style.display = "none";
+        document.body.classList.remove("loading-active");
+        alert("Data berhasil disimpan ke database!");
+
+        window.location.reload();
+      }, 3000); // Simulate 3 seconds delay
+    })
+    .catch((error) => {
+      console.error("Error stopping data send:", error);
+
+      // Hide overlay and loading message if there's an error
+      document.getElementById("overlay").style.display = "none";
+      document.getElementById("loading").style.display = "none";
+      document.body.classList.remove("loading-active");
+    });
+}
+
+function updateStopwatchDisplay() {
+  const hours = Math.floor(totalSeconds / 3600);
+
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  const formattedTime = `${pad(minutes)}:${pad(seconds)}`;
+  document.getElementById("stopwatch").textContent = formattedTime;
+}
+
+function pad(num) {
+  return num.toString().padStart(2, "0");
 }
 
 function sendDataToServer() {
   if (sendData) {
-      fetch('http://localhost:3000/savedata', {
-          method: 'POST',
-          headers: {
-              'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ nama }),
+    fetch("http://localhost:3000/savedata", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ nama }),
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Error sending data");
+        }
+        return response.json();
       })
-      .then(response => {
-          if (!response.ok) {
-              throw new Error('Error sending data');
-          }
-          return response.json();
+      .then((data) => {
+        console.log("Data sent:", data);
       })
-      .then(data => {
-          console.log('Data sent:', data);
+      .catch((error) => {
+        console.error("Error:", error);
+      });
+  }
+}
+
+function deleteData(cycleId) {
+  if (window.confirm("Apakah Anda yakin ingin menghapus data ini?")) {
+    fetch(`http://localhost:3000/deleteData/${cycleId}`, { method: "DELETE" })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Failed to delete data");
+        }
+        console.log("Data deleted successfully");
+        // Remove the table row from the UI
+        document.querySelector(`#row-${cycleId}`).remove();
+        // Optionally reload the data or update the UI
+        location.reload();
       })
-      .catch(error => {
-          console.error('Error:', error);
+      .catch((error) => {
+        console.error("Error deleting data:", error);
       });
   }
 }
@@ -171,53 +259,22 @@ function sendDataToServer() {
 
 
 
-
-
-
-
-
-
-
-// Fungsi untuk menghentikan pengiriman data
-
-// function startSending() {
-//   fetch("http://192.168.1.34/startdata") // Memberitahu ESP32 untuk mulai mengirim data
-//     .then((response) => {
-//       if (!response.ok) {
-//         throw new Error("Error starting data send");
-//       }
-//       console.log("Data sending started");
-//     })
-//     .catch((error) => {
-//       console.error("Error starting data send:", error);
-//     });
-// }
-
-
-// function stopSending() {
-//   fetch("http://192.168.1.34/stopdata") // Memberitahu ESP32 untuk berhenti mengirim data
-//     .then((response) => {
-//       if (!response.ok) {
-//         throw new Error("Error stopping data send");
-//       }
-//       console.log("Data sending stopped");
-//     })
-//     .catch((error) => {
-//       console.error("Error stopping data send:", error);
-//     });
-// }
-
 document.addEventListener("DOMContentLoaded", function () {
   let currentPage = 1;
   let totalPages = 0;
 
-  fetch("http://192.168.1.35:3000/fetchData") // Ubah endpoint menjadi /fetchdata
+  fetch("http://localhost:3000/fetchData") // Ubah endpoint menjadi /fetchdata
     .then((response) => response.json())
     .then((data) => {
       if (data.success) {
         const tableBody = document.getElementById("data-table");
         const dataPerPage = 10; // Ubah sesuai dengan jumlah data yang ingin ditampilkan per halaman
         totalPages = Math.ceil(data.data.length / dataPerPage);
+
+        function calculateAverage(values) {
+          const sum = values.reduce((acc, val) => acc + val, 0);
+          return (sum / values.length).toFixed(2); // Mengembalikan nilai rata-rata dengan 2 desimal
+        }
 
         function showPage(page) {
           tableBody.innerHTML = ""; // Bersihkan isi tabel sebelum menambahkan data baru
@@ -227,13 +284,20 @@ document.addEventListener("DOMContentLoaded", function () {
           for (let i = startIndex; i < endIndex; i++) {
             const row = data.data[i];
             const tr = document.createElement("tr");
+            // Menghitung nilai rata-rata heartRate dan spO2
+            const heartRateValues = row.heartRate; // Asumsikan heartRate adalah array nilai
+            const spO2Values = row.spO2; // Asumsikan spO2 adalah array nilai
+
+            const averageHeartRate = calculateAverage(heartRateValues);
+            const averageSpO2 = calculateAverage(spO2Values);
             tr.innerHTML = `
                           <td>${i + 1}</td>
-                          <td>${row.cycle_id}</td>
+                          <td>${row.timestamp}</td>
                           <td>${row.nama}</td>
-                          <td>${row.heartRate}</td>
-                          <td>${row.spO2}</td>
-                          <td>${row.irValue}</td>
+                          <td>${averageHeartRate}</td>
+                          <td>${averageSpO2}</td>
+                          <td class ="ir">${row.irValue}</td>
+                          <td><a href="viewCut.html?cycleId=${row.cycle_id}">View CUT</a></td>                        
                       `;
             tableBody.appendChild(tr);
           }
@@ -318,6 +382,14 @@ document.addEventListener("DOMContentLoaded", function () {
       } else {
         console.error("Error fetching data:", data.message);
       }
+      // Event listener untuk tombol "View CUT"
+      const viewCutButtons = document.querySelectorAll(".view-cut-btn");
+      viewCutButtons.forEach((button) => {
+        button.addEventListener("click", function (event) {
+          const cycleId = this.getAttribute("data-cycle-id"); // Ambil cycle_id dari atribut data-cycle-id
+          fetchAndDisplayIrValue(cycleId); // Panggil fungsi untuk menampilkan IrValue berdasarkan cycle_id
+        });
+      });
     })
     .catch((error) => console.error("Error:", error));
 });
@@ -326,52 +398,47 @@ document.addEventListener("DOMContentLoaded", function () {
   /* <td>${row.id}</td> */
 }
 
-
-
 //export to pdf,elxs,csv
 
 // Function to export data to PDF
 function exportToPDF() {
   // Ambil data dari tabel
-  const table = document.getElementById('data-table');
-  const rows = table.querySelectorAll('tr');
+  const table = document.getElementById("data-table");
+  const rows = table.querySelectorAll("tr");
 
   // Buat struktur data untuk pdfmake
   const data = [];
-  rows.forEach(row => {
-      const rowData = [];
-      row.querySelectorAll('td').forEach(cell => {
-          rowData.push(cell.textContent.trim());
-      });
-      data.push(rowData);
+  rows.forEach((row) => {
+    const rowData = [];
+    row.querySelectorAll("td").forEach((cell) => {
+      rowData.push(cell.textContent.trim());
+    });
+    data.push(rowData);
   });
 
   // Konfigurasi dokumen PDF
   const docDefinition = {
-      content: [
-          {
-              table: {
-                  body: [
-                      ['ID', 'Heart Rate', 'SpO2', 'IR Value'],
-                      ...data
-                  ]
-              }
-          }
-      ]
+    content: [
+      {
+        table: {
+          body: [["ID", "Heart Rate", "SpO2", "IR Value"], ...data],
+        },
+      },
+    ],
   };
 
   // Export ke PDF
-  pdfmake.createPdf(docDefinition).download('data.pdf');
+  pdfmake.createPdf(docDefinition).download("data.pdf");
 }
 
 // Function to export data to CSV
 async function fetchDataFromDatabase() {
   try {
-    const response = await fetch('http://localhost:3000/fetchData');
+    const response = await fetch("http://localhost:3000/fetchData");
     const data = await response.json();
     return data.data; // Mengembalikan array data dari database
   } catch (error) {
-    console.error('Error fetching data:', error);
+    console.error("Error fetching data:", error);
     return null;
   }
 }
@@ -379,11 +446,11 @@ async function fetchDataFromDatabase() {
 // Fungsi untuk mengambil semua data dari database
 async function fetchDataFromDatabase() {
   try {
-    const response = await fetch('http://localhost:3000/fetchData');
+    const response = await fetch("http://localhost:3000/fetchData");
     const data = await response.json();
     return data.data; // Mengembalikan array data dari database
   } catch (error) {
-    console.error('Error fetching data:', error);
+    console.error("Error fetching data:", error);
     return null;
   }
 }
@@ -394,17 +461,17 @@ async function exportToCSV() {
   if (!data) return; // Jika gagal, hentikan eksekusi
 
   // Buat konten CSV
-  const csvContent = data.map(row => Object.values(row).join(',')).join('\n');
+  const csvContent = data.map((row) => Object.values(row).join(",")).join("\n");
 
   // Buat blob dari konten CSV
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
 
   // Buat tautan untuk men-download file CSV
-  const link = document.createElement('a');
+  const link = document.createElement("a");
   const url = URL.createObjectURL(blob);
-  link.setAttribute('href', url);
-  link.setAttribute('download', 'data.csv');
-  link.style.visibility = 'hidden';
+  link.setAttribute("href", url);
+  link.setAttribute("download", "data.csv");
+  link.style.visibility = "hidden";
 
   // Tambahkan tautan ke dalam dokumen dan klik secara otomatis untuk men-download file CSV
   document.body.appendChild(link);
@@ -416,7 +483,7 @@ async function exportToCSV() {
 }
 
 // Panggil fungsi exportToCSV() saat tombol di klik
-document.getElementById('export-button').addEventListener('click', exportToCSV);
+document.getElementById("export-button").addEventListener("click", exportToCSV);
 
 // Fungsi untuk mengekspor data ke file Excel
 async function exportToExcel() {
@@ -431,9 +498,9 @@ async function exportToExcel() {
   sheetData.push(headers);
 
   // Iterasi setiap baris data dan konversi ke array
-  data.forEach(row => {
+  data.forEach((row) => {
     const rowData = [];
-    headers.forEach(header => {
+    headers.forEach((header) => {
       rowData.push(row[header]);
     });
     sheetData.push(rowData);
@@ -442,11 +509,13 @@ async function exportToExcel() {
   // Buat workbook dan tambahkan data ke dalam worksheet
   const workbook = XLSX.utils.book_new();
   const worksheet = XLSX.utils.aoa_to_sheet(sheetData);
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
 
   // Export ke Excel
-  XLSX.writeFile(workbook, 'data.xlsx');
+  XLSX.writeFile(workbook, "data.xlsx");
 }
 
 // Panggil fungsi exportToExcel() saat tombol di klik
-document.getElementById('export-excel-button').addEventListener('click', exportToExcel);
+document
+  .getElementById("export-excel-button")
+  .addEventListener("click", exportToExcel);
