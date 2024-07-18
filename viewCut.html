@@ -15,6 +15,8 @@
       integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC"
       crossorigin="anonymous"
     />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <link rel="stylesheet" type="text/css" href="style.css" />
     <script src="CutSignal.js" defer></script>
   </head>
@@ -22,17 +24,29 @@
     <nav>
       <a href="index.html">Home</a>
       <a href="viewData.html">View Data</a>
-      <a href="viewCut.html">View CUT</a>
+      <a href="viewPPGData.html">View CUT</a>
+
     </nav>
-    <h1>IR Value</h1>
-    <p id="nama"></p>
+
+    <u>
+      <h1>Grafik Sinyal PPG</h1>
+    </u>
+    <p id="nama" style="font-size: 25px; font-weight: bold"></p>
     <p id="message"></p>
     <canvas id="ppgChart" width="400" height="200"></canvas>
     <div class="container">
+      <div>
+        <h2>Potongan Signal</h2>
+        <button id="saveButton" class="btn btn-lg btn-primary mt-3 mb-3">
+          Simpan Data
+        </button>
+        <div id="message" class="mt-3"></div>
+      </div>
       <div class="row justify-content-right bg-light">
         <div id="cutChartsContainer" class="col-6"></div>
         <!-- Tempat untuk menampilkan grafik siklus yang dipotong -->
       </div>
     </div>
+ 
   </body>
 </html>

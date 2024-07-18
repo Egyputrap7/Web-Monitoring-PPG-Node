@@ -12,8 +12,11 @@ let nama = "";
 let stopwatchInterval;
 let totalSeconds = 0;
 
+let isSavingData = false; // Kontrol global untuk mengatur kapan data disimpan
+let currentCycleId = ""; // UUID untuk siklus pengiriman data saat ini
+
 function fetchData() {
-  fetch("http://192.168.56.29/getdata")
+  fetch("http://192.168.1.41/getdata")
     .then((response) => response.json())
     .then((data) => {
       document.getElementById("heartRate").innerText = data.heartRate + " bpm";
@@ -24,6 +27,9 @@ function fetchData() {
       const time = new Date();
       const ppgValue = parseFloat(data.irValue); // Ensure the value is a float
       addData(chart, time, ppgValue);
+      if (isSavingData) {
+        sendDataToServer(data);
+      }
     })
     .catch((error) => console.error("Error:", error));
 }
@@ -50,8 +56,8 @@ window.onload = function () {
           borderColor: "rgba(75, 192, 192, 1)",
           borderWidth: 2,
           fill: false,
-          lineTension: 0.3, // Smooth the line
-          pointRadius: 0, // Hide data points to make the line smoother
+          tension: 0.3, // Smooth the line
+          pointRadius: 1, // Hide data points to make the line smoother
         },
       ],
     },
@@ -60,9 +66,9 @@ window.onload = function () {
         x: {
           type: "realtime", // Use the 'realtime' scale provided by chartjs-plugin-streaming
           realtime: {
-            duration: 3000, // Data in the past 60 seconds will be displayed
-            refresh: 20, // Update interval
-            delay: 600, // Delay for fetching new data
+            duration: 6000, // Data in the past 60 seconds will be displayed
+            refresh: 50, // Update interval
+            delay: 1000, // Delay for fetching new data
             onRefresh: fetchData, // Call fetchData to get new data
           },
         },
@@ -74,7 +80,7 @@ window.onload = function () {
       },
       plugins: {
         streaming: {
-          frameRate: 60, // Reduce frame rate to make the rendering smoother
+          frameRate: 30, // Reduce frame rate to make the rendering smoother
         },
       },
     },
@@ -114,87 +120,71 @@ function handleSubmit(event) {
     });
 }
 
-function startSending() {
-  fetch("http://192.168.56.29/startdata") // Memberitahu ESP32 untuk mulai mengirim data
-    .then((response) => {
-      if (!response.ok) {
-        throw new Error("Error starting data send");
-      }
-      console.log("Data sending started");
-    })
-    .catch((error) => {
-      console.error("Error starting data send:", error);
-    });
-  // Clear any existing interval
-  clearInterval(stopwatchInterval);
+// function startSending() {
+//   fetch("http://192.168.1.41/startdata") // Memberitahu ESP32 untuk mulai mengirim data
+//     .then((response) => {
+//       if (!response.ok) {
+//         throw new Error("Error starting data send");
+//       }
+//       console.log("Data sending started");
+//     })
+//     .catch((error) => {
+//       console.error("Error starting data send:", error);
+//     });
+//   // Clear any existing interval
+//   clearInterval(stopwatchInterval);
 
-  // Reset stopwatch
-  totalSeconds = 0;
-  updateStopwatchDisplay();
-  // Show stopwatch
-  document.getElementById("stopwatch").style.display = "inline-block";
+//   // Reset stopwatch
+//   totalSeconds = 0;
+//   updateStopwatchDisplay();
+//   // Show stopwatch
+//   document.getElementById("stopwatch").style.display = "inline-block";
 
-  // Start interval to update stopwatch every second
-  stopwatchInterval = setInterval(function () {
-    totalSeconds++;
-    updateStopwatchDisplay();
-  }, 1000); // Update every second
-}
+//   // Start interval to update stopwatch every second
+//   stopwatchInterval = setInterval(function () {
+//     totalSeconds++;
+//     updateStopwatchDisplay();
+//   }, 1000); // Update every second
+// }
 
 // function stopSending() {
 //   sendData = false;
 //   console.log("Data sending stopped");
+
+//   // Show overlay and loading message
+//   document.getElementById("overlay").style.display = "block";
+//   document.getElementById("loading").style.display = "block";
+//   document.body.classList.add("loading-active");
+
 //   // Optionally, notify ESP32 to stop sending data
-//   fetch("http://192.168.1.33/stopdata")
+//   fetch("http://192.168.1.41/stopdata")
 //     .then((response) => {
 //       if (!response.ok) {
 //         throw new Error("Error stopping data send");
 //       }
 //       console.log("Data sending stopped on ESP32");
+
+//       // Simulate a delay to represent saving to database
+//       setTimeout(function () {
+//         // Hide overlay and loading message
+
+//         document.getElementById("overlay").style.display = "none";
+//         document.getElementById("loading").style.display = "none";
+//         document.body.classList.remove("loading-active");
+//         alert("Data berhasil disimpan ke database!");
+
+//         window.location.reload();
+//       }, 3000); // Simulate 3 seconds delay
 //     })
 //     .catch((error) => {
 //       console.error("Error stopping data send:", error);
+
+//       // Hide overlay and loading message if there's an error
+//       document.getElementById("overlay").style.display = "none";
+//       document.getElementById("loading").style.display = "none";
+//       document.body.classList.remove("loading-active");
 //     });
 // }
-
-function stopSending() {
-  sendData = false;
-  console.log("Data sending stopped");
-
-  // Show overlay and loading message
-  document.getElementById("overlay").style.display = "block";
-  document.getElementById("loading").style.display = "block";
-  document.body.classList.add("loading-active");
-
-  // Optionally, notify ESP32 to stop sending data
-  fetch("http://192.168.56.29/stopdata")
-    .then((response) => {
-      if (!response.ok) {
-        throw new Error("Error stopping data send");
-      }
-      console.log("Data sending stopped on ESP32");
-
-      // Simulate a delay to represent saving to database
-      setTimeout(function () {
-        // Hide overlay and loading message
-
-        document.getElementById("overlay").style.display = "none";
-        document.getElementById("loading").style.display = "none";
-        document.body.classList.remove("loading-active");
-        alert("Data berhasil disimpan ke database!");
-
-        window.location.reload();
-      }, 3000); // Simulate 3 seconds delay
-    })
-    .catch((error) => {
-      console.error("Error stopping data send:", error);
-
-      // Hide overlay and loading message if there's an error
-      document.getElementById("overlay").style.display = "none";
-      document.getElementById("loading").style.display = "none";
-      document.body.classList.remove("loading-active");
-    });
-}
 
 function updateStopwatchDisplay() {
   const hours = Math.floor(totalSeconds / 3600);
@@ -210,14 +200,84 @@ function pad(num) {
   return num.toString().padStart(2, "0");
 }
 
-function sendDataToServer() {
-  if (sendData) {
-    fetch("http://localhost:3000/savedata", {
+// Fungsi untuk memulai siklus pengiriman data dari server Node.js
+function startSending() {
+
+  const nameInput = document.getElementById("nama").value;
+
+  
+  fetch("http://localhost:3000/startCycle")
+    .then((response) => response.json())
+    .then((data) => {
+      if (data.success) {
+        currentCycleId = data.cycleId;
+        isSavingData = true; // Set isSavingData true untuk mulai mengirim data
+        console.log("Cycle started with UUID:", currentCycleId);
+      } else {
+        console.error("Failed to start cycle:", data.message);
+      }
+    })
+    .catch((error) => console.error("Error starting cycle:", error));
+  //Clear any existing interval
+  clearInterval(stopwatchInterval);
+
+  // Reset stopwatch
+  totalSeconds = 0;
+  if (nameInput.trim() === "") {
+    updateStopwatchDisplay();
+    return;
+  }
+  
+  // Show stopwatch
+  document.getElementById("stopwatch").style.display = "inline-block";
+
+  // Start interval to update stopwatch every second
+  stopwatchInterval = setInterval(function () {
+    totalSeconds++;
+    updateStopwatchDisplay();
+  }, 1000); // Update every second
+}
+
+// Fungsi untuk menghentikan penyimpanan data
+function stopSending() {
+  isSavingData = false;
+  currentCycleId = ""; // Reset currentCycleId
+  console.log("Data sending stopped");
+
+  // Show overlay and loading message
+  document.getElementById("overlay").style.display = "block";
+  document.getElementById("loading").style.display = "block";
+  document.body.classList.add("loading-active");
+
+  // Simulate a delay to represent saving to database
+  setTimeout(function () {
+    // Hide overlay and loading message
+    document.getElementById("overlay").style.display = "none";
+    document.getElementById("loading").style.display = "none";
+    document.body.classList.remove("loading-active");
+
+    alert("Data berhasil disimpan ke database!");
+    window.location.reload();
+  }, 3000); // Simulate 3 seconds delay
+}
+
+// Fungsi untuk mengirim data ke server Node.js
+function sendDataToServer(data) {
+  if (isSavingData && currentCycleId !== "") {
+    const payload = {
+      nama,
+      heartRate: data.heartRate,
+      spO2: data.spO2,
+      irValue: data.irValue,
+      cycleId: currentCycleId, // Menggunakan UUID yang sama untuk semua data dalam satu siklus
+    };
+
+    fetch("http://localhost:3000/saveData", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ nama }),
+      body: JSON.stringify(payload),
     })
       .then((response) => {
         if (!response.ok) {
@@ -225,14 +285,70 @@ function sendDataToServer() {
         }
         return response.json();
       })
-      .then((data) => {
-        console.log("Data sent:", data);
+      .then((responseData) => {
+        console.log("Data sent:", responseData);
       })
       .catch((error) => {
-        console.error("Error:", error);
+        console.error("Error sending data:", error);
       });
   }
 }
+
+// function sendDataToServer() {
+//   if (sendData) {
+//     fetch("http://localhost:3000/savedata", {
+//       method: "POST",
+//       headers: {
+//         "Content-Type": "application/json",
+//       },
+//       body: JSON.stringify({ nama }),
+//       body: JSON.stringify(data),
+//     })
+//       .then((response) => {
+//         if (!response.ok) {
+//           throw new Error("Error sending data");
+//         }
+//         return response.json();
+//       })
+//       .then((data) => {
+//         console.log("Data sent:", data);
+//       })
+//       .catch((error) => {
+//         console.error("Error:", error);
+//       });
+//   }
+// }
+
+// function sendDataToServer(data) {
+//   if (sendData) {
+//     const payload = {
+//       nama,
+//       heartRate: data.heartRate,
+//       spO2: data.spO2,
+//       irValue: data.irValue,
+//     };
+
+//     fetch("http://localhost:3000/saveData", {
+//       method: "POST",
+//       headers: {
+//         "Content-Type": "application/json",
+//       },
+//       body: JSON.stringify(payload),
+//     })
+//       .then((response) => {
+//         if (!response.ok) {
+//           throw new Error("Error sending data");
+//         }
+//         return response.json();
+//       })
+//       .then((responseData) => {
+//         console.log("Data sent:", responseData);
+//       })
+//       .catch((error) => {
+//         console.error("Error:", error);
+//       });
+//   }
+// }
 
 function deleteData(cycleId) {
   if (window.confirm("Apakah Anda yakin ingin menghapus data ini?")) {
@@ -253,17 +369,11 @@ function deleteData(cycleId) {
   }
 }
 
-
-
-
-
-
-
 document.addEventListener("DOMContentLoaded", function () {
   let currentPage = 1;
   let totalPages = 0;
 
-  fetch("http://localhost:3000/fetchData") // Ubah endpoint menjadi /fetchdata
+  fetch("http://localhost:3000/fetchData") // Ubah endpoint menjadi fetchdata
     .then((response) => response.json())
     .then((data) => {
       if (data.success) {
@@ -272,12 +382,17 @@ document.addEventListener("DOMContentLoaded", function () {
         totalPages = Math.ceil(data.data.length / dataPerPage);
 
         function calculateAverage(values) {
-          const sum = values.reduce((acc, val) => acc + val, 0);
-          return (sum / values.length).toFixed(2); // Mengembalikan nilai rata-rata dengan 2 desimal
+          const sum = values.reduce((acc, val) => acc + val, 2);
+          return (sum / values.length).toFixed(); // Mengembalikan nilai rata-rata dengan 2 desimal
         }
 
         function showPage(page) {
           tableBody.innerHTML = ""; // Bersihkan isi tabel sebelum menambahkan data baru
+
+          data.data.sort(
+            (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
+          );
+
           const startIndex = (page - 1) * dataPerPage;
           const endIndex = Math.min(startIndex + dataPerPage, data.data.length);
 
@@ -290,6 +405,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
             const averageHeartRate = calculateAverage(heartRateValues);
             const averageSpO2 = calculateAverage(spO2Values);
+
+            const deleteButton = document.createElement("button");
+            deleteButton.textContent = "Delete";
+            deleteButton.className = "btn btn-danger";
+            deleteButton.onclick = function () {
+              deleteData(row.cycle_id); // Pass cycle_id to deleteData function
+            };
             tr.innerHTML = `
                           <td>${i + 1}</td>
                           <td>${row.timestamp}</td>
@@ -297,9 +419,14 @@ document.addEventListener("DOMContentLoaded", function () {
                           <td>${averageHeartRate}</td>
                           <td>${averageSpO2}</td>
                           <td class ="ir">${row.irValue}</td>
-                          <td><a href="viewCut.html?cycleId=${row.cycle_id}">View CUT</a></td>                        
+                          <td><a class="btn btn-primary"  href="viewCut.html?cycleId=${
+                            row.cycle_id
+                          }">View Graph</a></td>  
+                                                
                       `;
             tableBody.appendChild(tr);
+
+            tr.children[tr.children.length - 1].appendChild(deleteButton);
           }
         }
 

@@ -70,12 +70,31 @@ table td.ir {
     left: 50%;
     transform: translate(-50%, -50%);
     background-color: rgba(0, 0, 0, 0.8);
-    color: white;
+    color: #ddd;
     padding: 20px;
     border-radius: 5px;
     font-size: 18px;
     z-index: 1001; /* Ensure loading message is above the overlay */
+  background:
+   linear-gradient(#000 0 0) 0/0% no-repeat
+   #ddd;
+    animation: l4 2s infinite steps(6);
   }
+
+  @keyframes l4 {
+    100% {background-size:120%}
+}
+
+
+
+
+
+
+
+
+
+
+
 
   .stopwatch-container {
     display: flex;
@@ -104,6 +123,9 @@ table td.ir {
   .cutChart {
     width: 100%; /* Lebar elemen mengisi satu kolom */
     height: 300px; /* Tinggi elemen */
+  }
+  #dataTableCut {
+    display: none; /* Default hide table */
   }
 
 
